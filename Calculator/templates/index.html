@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Go Calculator</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+
+<body>
+
+    <div class="calculator-container">
+        <h1>Go Expression Calculato r</h1>
+
+        <div class="calculator-card">
+            
+            <label for="expression">Enter Expression</label>
+            <input 
+                type="text" 
+                id="expression" 
+                placeholder="Example: 12+5*3-4/2"
+            >
+
+            <div class="button-group">
+                <button class="btn calculate-btn">Calculate</button>
+                <button class="btn clear-btn">Clear</button>
+            </div>
+
+            <div class="result-section">
+                <p class="result-label">Result</p>
+                <div class="result-box">0</div>
+            </div>
+
+            <div class="error-section">
+                <p class="error-label">Error</p>
+                <div class="error-box">None</div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+
+<script>
+document.querySelector(".calculate-btn").addEventListener("click", async () => {
+    const expression = document.getElementById("expression").value;
+
+    const response = await fetch("/calculate", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ expression: expression })
+    });
+
+    const data = await response.json();
+
+    if (data.error) {
+        document.querySelector(".error-box").innerText = data.error;
+        document.querySelector(".result-box").innerText = "0";
+    } else {
+        document.querySelector(".result-box").innerText = data.result;
+        document.querySelector(".error-box").innerText = "None";
+    }
+});
+document.querySelector(".clear-btn").addEventListener("click", () => {
+    document.getElementById("expression").value = "";
+    document.querySelector(".result-box").innerText = "0";
+    document.querySelector(".error-box").innerText = "None";
+});
+</script>
+</html>

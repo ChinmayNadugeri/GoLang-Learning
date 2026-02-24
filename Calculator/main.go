@@ -1,24 +1,58 @@
-/* package main
+package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 	"unicode"
 )
 
 func main() {
-	var input string
-	fmt.Print("Enter expression: ")
-	fmt.Scanln(&input)
 
-	result, err := evaluateExpression(input)
+	// Serve CSS
+	fs := http.FileServer(http.Dir("./static"))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
+
+	// Serve HTML
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./templates/index.html")
+	})
+
+	// API endpoint
+	http.HandleFunc("/calculate", calculateHandler)
+
+	fmt.Println("Server running at http://localhost:8080")
+	http.ListenAndServe(":8080", nil)
+}
+
+type Request struct {
+	Expression string `json:"expression"`
+}
+
+type Response struct {
+	Result float64 `json:"result,omitempty"`
+	Error  string  `json:"error,omitempty"`
+}
+
+func calculateHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	var req Request
+	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		fmt.Println("Error:", err)
+		json.NewEncoder(w).Encode(Response{Error: "Invalid request"})
 		return
 	}
 
-	fmt.Println("Result:", result)
+	result, err := evaluateExpression(req.Expression)
+	if err != nil {
+		json.NewEncoder(w).Encode(Response{Error: err.Error()})
+		return
+	}
+
+	json.NewEncoder(w).Encode(Response{Result: result})
 }
 
 func evaluateExpression(expr string) (float64, error) {
@@ -29,18 +63,15 @@ func evaluateExpression(expr string) (float64, error) {
 	for i < len(expr) {
 		ch := rune(expr[i])
 
-		// Terminate if '=' encountered
 		if ch == '=' {
 			return 0, errors.New("invalid expression: '=' sign encountered")
 		}
 
-		// Skip spaces
 		if unicode.IsSpace(ch) {
 			i++
 			continue
 		}
 
-		// If digit, parse full number
 		if unicode.IsDigit(ch) {
 			start := i
 			for i < len(expr) && (unicode.IsDigit(rune(expr[i])) || expr[i] == '.') {
@@ -54,7 +85,6 @@ func evaluateExpression(expr string) (float64, error) {
 			continue
 		}
 
-		// If operator
 		if isOperator(ch) {
 			for len(operators) > 0 &&
 				precedence(operators[len(operators)-1]) >= precedence(ch) {
@@ -72,7 +102,6 @@ func evaluateExpression(expr string) (float64, error) {
 		i++
 	}
 
-	// Apply remaining operators
 	for len(operators) > 0 {
 		err := applyOperator(&numbers, &operators)
 		if err != nil {
@@ -106,12 +135,10 @@ func applyOperator(numbers *[]float64, operators *[]rune) error {
 		return errors.New("invalid expression")
 	}
 
-	// Pop last two numbers
 	n2 := (*numbers)[len(*numbers)-1]
 	n1 := (*numbers)[len(*numbers)-2]
 	*numbers = (*numbers)[:len(*numbers)-2]
 
-	// Pop operator
 	op := (*operators)[len(*operators)-1]
 	*operators = (*operators)[:len(*operators)-1]
 
@@ -134,4 +161,3 @@ func applyOperator(numbers *[]float64, operators *[]rune) error {
 	*numbers = append(*numbers, result)
 	return nil
 }
-*/
